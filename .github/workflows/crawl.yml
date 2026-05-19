@@ -39,9 +39,12 @@ jobs:
 
       - name: Commit data snapshot
         if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "TrendRadar Bot"
           git config user.email "bot@trendradar.local"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add data/
           git diff --staged --quiet || git commit -m "📊 Update: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M CST')"
           git push
