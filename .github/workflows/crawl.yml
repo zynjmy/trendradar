@@ -1,0 +1,47 @@
+name: "TrendRadar 舆情日报"
+
+on:
+  schedule:
+    # 每天北京时间 9:00 = UTC 1:00
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run TrendRadar
+        env:
+          # 方案B: 工作通知 (个人推送)
+          DINGTALK_APP_KEY: ${{ secrets.DINGTALK_APP_KEY }}
+          DINGTALK_APP_SECRET: ${{ secrets.DINGTALK_APP_SECRET }}
+          DINGTALK_AGENT_ID: ${{ secrets.DINGTALK_AGENT_ID }}
+          DINGTALK_USER_IDS: ${{ secrets.DINGTALK_USER_IDS }}
+          # 方案A: 群机器人 (回退)
+          DINGTALK_WEBHOOK_URL: ${{ secrets.DINGTALK_WEBHOOK_URL }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: python main.py
+
+      - name: Commit data snapshot
+        if: always()
+        run: |
+          git config user.name "TrendRadar Bot"
+          git config user.email "bot@trendradar.local"
+          git add data/
+          git diff --staged --quiet || git commit -m "📊 Update: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M CST')"
+          git push
