@@ -61,5 +61,5 @@ jobs:
           fi
           git commit -m "📊 Update: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M CST')"
           git fetch origin master
-          git rebase origin/master
+          git merge origin/master --no-edit -m "Merge: synchronize data snapshots"
           git push origin master
