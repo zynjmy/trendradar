@@ -28,8 +28,8 @@ _RETRYABLE = (
 
 
 def _load_config() -> RetryConfig:
-    max_retries = int(os.environ.get("CRAWLER_MAX_RETRIES", "3"))
-    initial_delay = float(os.environ.get("CRAWLER_RETRY_DELAY", "1.0"))
+    max_retries = int(os.environ.get("CRAWLER_MAX_RETRIES") or "3")
+    initial_delay = float(os.environ.get("CRAWLER_RETRY_DELAY") or "1.0")
     return RetryConfig(
         max_retries=max_retries,
         initial_delay=initial_delay,
