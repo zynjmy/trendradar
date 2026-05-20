@@ -60,5 +60,6 @@ jobs:
             exit 0
           fi
           git commit -m "📊 Update: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M CST')"
-          git pull --rebase origin master
-          git push
+          git fetch origin master
+          git rebase origin/master
+          git push origin master
