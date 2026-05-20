@@ -27,6 +27,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Debug - Verify checked-out code
+        run: |
+          echo "=== git log (last 5 commits) ==="
+          git log --oneline -5
+          echo ""
+          echo "=== main.py imports ==="
+          grep -n "import\|from" main.py | head -30
+          echo ""
+          echo "=== crawlers list ==="
+          grep -A 20 "crawlers = \[" main.py
+          echo ""
+          echo "=== crawler files ==="
+          ls -la crawlers/
+
       - name: Run TrendRadar
         env:
           # 方案B: 工作通知 (个人推送)
@@ -60,6 +74,5 @@ jobs:
             exit 0
           fi
           git commit -m "📊 Update: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M CST')"
-          git fetch origin master
-          git merge origin/master --no-edit -m "Merge: synchronize data snapshots"
+          git pull --rebase origin master
           git push origin master
