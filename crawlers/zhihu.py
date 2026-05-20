@@ -1,8 +1,8 @@
 """Zhihu hot list crawler.
 
 Uses the public Zhihu API (no auth required).
+Falls back to newsnow.busiyi.world if the direct API is unavailable.
 """
-
 import requests
 
 from crawlers._common import HEADERS
@@ -10,8 +10,8 @@ from crawlers._common import HEADERS
 URL = "https://www.zhihu.com/api/v3/feed/topstory/hot-lists/total?limit=50&desktop=true"
 
 
-def crawl() -> list[dict]:
-    """Return top-10 Zhihu hot list items."""
+def _crawl_direct() -> list[dict]:
+    """Direct Zhihu API (may require auth in some regions)."""
     resp = requests.get(
         URL,
         headers={**HEADERS, "Referer": "https://www.zhihu.com/hot"},
@@ -38,3 +38,17 @@ def crawl() -> list[dict]:
         if len(items) >= 10:
             break
     return items
+
+
+def crawl() -> list[dict]:
+    """Return top-10 Zhihu hot list items."""
+    try:
+        items = _crawl_direct()
+        if items:
+            return items[:10]
+    except Exception:
+        pass
+
+    # Fall back to newsnow aggregator
+    from crawlers.newsnow import fetch as newsnow_fetch
+    return newsnow_fetch("zhihu")

@@ -1,51 +1,60 @@
 """Kuaishou hot list crawler.
 
-NOTE: Kuaishou has no stable public API. This module uses a third-party
-aggregator. If it breaks, update ENDPOINTS.
+Backed by newsnow.busiyi.world aggregator API (experimental — "kuaishou"
+may not be a supported source). Falls back to vvhan if newsnow fails.
+Reference: BettaFish/MindSpider/BroadTopicExtraction/get_today_news.py
 """
-
 import requests
 
 from crawlers._common import HEADERS
+from crawlers.newsnow import fetch as newsnow_fetch
 
-ENDPOINTS = [
+# Legacy vvhan endpoints — used only as fallback
+_VVHAN_URLS = [
     "https://api.vvhan.com/api/hotlist/ksHot",
     "https://api.vvhan.com/api/hotlist?type=ksHot",
 ]
 
 
-def _parse(data: dict) -> list[dict]:
-    items = []
-    raw = data.get("data", [])
-    if isinstance(raw, dict):
-        raw = raw.get("list", [])
-    for item in raw:
-        title = (item.get("title") or "").strip()
-        if not title:
-            continue
-        items.append({
-            "title": title,
-            "url": item.get("url", ""),
-            "heat": str(item.get("hot", "")),
-            "rank": len(items) + 1,
-        })
-        if len(items) >= 10:
-            break
-    return items
-
-
-def crawl() -> list[dict]:
-    """Return top-10 Kuaishou hot topics (best-effort)."""
-    for url in ENDPOINTS:
+def _crawl_vvhan() -> list[dict]:
+    """Legacy vvhan-based crawl (kept as fallback)."""
+    for url in _VVHAN_URLS:
         try:
             resp = requests.get(url, headers=HEADERS, timeout=15)
             if resp.status_code == 200:
-                items = _parse(resp.json())
+                data = resp.json()
+                raw = data.get("data", [])
+                if isinstance(raw, dict):
+                    raw = raw.get("list", [])
+                items = []
+                for i, item in enumerate(raw, 1):
+                    title = (item.get("title") or "").strip()
+                    if not title:
+                        continue
+                    items.append({
+                        "title": title,
+                        "url": item.get("url", ""),
+                        "heat": str(item.get("hot", "")),
+                        "rank": i,
+                    })
+                    if len(items) >= 10:
+                        break
                 if items:
                     return items[:10]
         except Exception:
             continue
-    raise RuntimeError(
-        "Kuaishou aggregator APIs are currently unavailable. "
-        "Try updating crawlers/kuaishou.py with a working endpoint."
-    )
+    raise RuntimeError("vvhan Kuaishou API unavailable")
+
+
+def crawl() -> list[dict]:
+    """Return top-10 Kuaishou hot topics."""
+    try:
+        return newsnow_fetch("kuaishou")
+    except Exception:
+        pass
+    try:
+        return _crawl_vvhan()
+    except Exception:
+        raise RuntimeError(
+            "Kuaishou hot-list unavailable: both newsnow and vvhan APIs failed."
+        )

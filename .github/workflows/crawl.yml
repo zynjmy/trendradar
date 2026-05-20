@@ -35,6 +35,13 @@ jobs:
           # 方案A: 群机器人 (回退)
           DINGTALK_WEBHOOK_URL: ${{ secrets.DINGTALK_WEBHOOK_URL }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          # AI 跨平台洞察 (可选, 不设置则跳过)
+          TREND_LLM_API_KEY: ${{ secrets.TREND_LLM_API_KEY }}
+          TREND_LLM_BASE_URL: ${{ secrets.TREND_LLM_BASE_URL }}
+          TREND_LLM_MODEL: ${{ secrets.TREND_LLM_MODEL }}
+          # 爬虫重试 (可选, 有默认值)
+          CRAWLER_MAX_RETRIES: ${{ secrets.CRAWLER_MAX_RETRIES }}
+          CRAWLER_RETRY_DELAY: ${{ secrets.CRAWLER_RETRY_DELAY }}
         run: python main.py
 
       - name: Commit data snapshot
