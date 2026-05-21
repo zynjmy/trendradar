@@ -47,6 +47,7 @@ def summarize(all_results: list[dict]) -> str | None:
 
     base_url = (os.environ.get("TREND_LLM_BASE_URL") or "https://api.deepseek.com").strip()
     model = (os.environ.get("TREND_LLM_MODEL") or "deepseek-chat").strip()
+    max_tokens = int(os.environ.get("TREND_LLM_MAX_TOKENS") or "2000")
 
     headlines = _build_headlines_text(all_results)
     if not headlines.strip():
@@ -60,7 +61,7 @@ def summarize(all_results: list[dict]) -> str | None:
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=2000,
+            max_tokens=max_tokens,
             temperature=0.5,
             timeout=60,
         )
