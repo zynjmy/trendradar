@@ -41,12 +41,12 @@ def summarize(all_results: list[dict]) -> str | None:
     Requires TREND_LLM_API_KEY env var. Set TREND_LLM_BASE_URL and
     TREND_LLM_MODEL to override defaults.
     """
-    api_key = os.environ.get("TREND_LLM_API_KEY", "").strip()
+    api_key = (os.environ.get("TREND_LLM_API_KEY") or "").strip()
     if not api_key:
         return None
 
-    base_url = os.environ.get("TREND_LLM_BASE_URL", "https://api.deepseek.com").strip()
-    model = os.environ.get("TREND_LLM_MODEL", "deepseek-chat").strip()
+    base_url = (os.environ.get("TREND_LLM_BASE_URL") or "https://api.deepseek.com").strip()
+    model = (os.environ.get("TREND_LLM_MODEL") or "deepseek-chat").strip()
 
     headlines = _build_headlines_text(all_results)
     if not headlines.strip():
@@ -60,18 +60,30 @@ def summarize(all_results: list[dict]) -> str | None:
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=500,
+            max_tokens=2000,
             temperature=0.5,
             timeout=60,
         )
-        content = resp.choices[0].message.content
+        content = resp.choices[0].message.content or ""
 
-        # Try JSON parse
-        match = re.search(r'"insight"\s*:\s*"([^"]+)"', content)
+        # Strip markdown code fences if present
+        content = re.sub(r"```(?:json)?\s*", "", content)
+        content = re.sub(r"```", "", content)
+        content = content.strip()
+
+        # Try JSON parse: first regex extraction, then full parse
+        match = re.search(r'"insight"\s*:\s*"((?:[^"\\]|\\.)*)"', content)
         if match:
-            return match.group(1)
-        data = json.loads(content)
-        return data.get("insight", "")
+            raw = match.group(1)
+            return raw.encode().decode("unicode_escape") if "\\u" in raw else raw
+        try:
+            data = json.loads(content)
+            return data.get("insight", "")
+        except json.JSONDecodeError:
+            pass
+        # Last resort: return the raw content if it looks like natural text
+        if len(content) > 20:
+            return content
     except Exception as exc:
         print(f"  [analyst] LLM summarization failed: {exc}")
         return None
