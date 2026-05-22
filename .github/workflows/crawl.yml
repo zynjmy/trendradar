@@ -74,5 +74,10 @@ jobs:
             exit 0
           fi
           git commit -m "📊 Update: $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M CST')"
-          git pull --rebase origin master
+          git pull --rebase origin master || {
+            echo "Rebase conflict — resolving data/latest.json in favor of current run"
+            git checkout --theirs data/latest.json
+            git add data/latest.json
+            git rebase --continue
+          }
           git push origin master
