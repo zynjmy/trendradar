@@ -133,6 +133,7 @@ python scripts/test_push.py
 ## 已知问题
 
 - **GitHub Secrets 空字符串陷阱**：workflow 中引用未配置的 Secret（如 `${{ secrets.X }}`）会注入空字符串环境变量。代码中 `os.environ.get("X", default)` 因 key 存在（值为空）返回空字符串而非 default。必须使用 `os.environ.get("X") or default` 模式。`crawlers/retry.py` 和 `analyst/summarizer.py` 已统一采用此模式
+- **Rebase 冲突 — data/latest.json**：两次 workflow 运行时间重叠时（如 cron + workflow_dispatch 相邻触发），`git pull --rebase` 会因两地都修改了 `latest.json` 而冲突。已添加 `|| { git checkout --theirs data/latest.json; git add data/latest.json; git rebase --continue; }` 自动用本地最新数据覆盖。注意 rebase 中 `--theirs` 指向正在 rebase 的本地 commit（新数据），`--ours` 指向目标分支（远端旧数据），与 merge 时相反
 - GitHub Actions cron 调度偶尔会跳过触发（尤其大量 workflow_dispatch 手动调试后），代码/配置没问题时观察次日是否恢复
 - 知乎直接 API 在某些网络环境下返回 401（需认证），已添加 newsnow 回退
 - 百度 API 数据结构使用嵌套 `cards[0].content[0].content[...]`，已通过递归解析适配
